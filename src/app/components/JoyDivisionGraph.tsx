@@ -11,13 +11,35 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [data, setData] = useState<number[][]>([]);
   const animationRef = useRef<number | undefined>(undefined);
+  const groupRef = useRef<SVGGElement | null>(null);
 
   const generateData = () => {
-    const rows = 50;
+    const rows = 80;
     const cols = 100;
-    return Array.from({ length: rows }, () =>
-      Array.from({ length: cols }, () => Math.random() * 50)
-    );
+    const peakHeight = 60;
+    const edgeHeight = 5;
+
+    return Array.from({ length: rows }, (_, i) => {
+      const distanceFactor = Math.abs(i - rows / 2) / (rows / 2);
+      const amplitude =
+        edgeHeight + (peakHeight - edgeHeight) * (1 - distanceFactor);
+
+      const rowData = Array.from(
+        { length: cols },
+        () => Math.random() * amplitude
+      );
+
+      if (Math.abs(i - rows / 2) < rows * 0.2 && Math.random() > 0.8) {
+        const peakIndex = Math.floor(Math.random() * (cols - 20)) + 10;
+        for (let k = 0; k < 5; k++) {
+          if (peakIndex + k < cols) {
+            rowData[peakIndex + k] = peakHeight * (1 + Math.random() * 0.5);
+          }
+        }
+      }
+
+      return rowData;
+    });
   };
 
   useEffect(() => {
@@ -30,9 +52,14 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
     const svg = d3.select(svgRef.current);
     const width = 800;
     const height = 600;
-    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+    const margin = { top: 50, right: 20, bottom: 50, left: 20 };
 
     svg.attr("width", width).attr("height", height);
+
+    if (!groupRef.current) {
+      groupRef.current = svg.append("g").node();
+    }
+    const group = d3.select(groupRef.current);
 
     const x = d3
       .scaleLinear()
@@ -51,19 +78,18 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
       .y1((d) => d[1])
       .curve(d3.curveBasis);
 
-    const updateGraph = (offset = 0) => {
-      svg.selectAll("path").remove();
+    const linesData = data.map((row, i) => {
+      return row.map((value, j) => {
+        return [y(i), y(i) - value];
+      });
+    });
 
-      data.forEach((row, i) => {
-        const points: [number, number][] = row.map((value, j) => {
-          const animOffset = isAnimated
-            ? Math.sin((j + offset) * 0.1) * 10 +
-              Math.cos((i + offset) * 0.1) * 10
-            : 0;
-          return [y(i), y(i) - value - animOffset];
-        });
+    const drawStaticGraph = () => {
+      group.selectAll("path").remove();
+      group.attr("transform", null);
 
-        svg
+      linesData.forEach((points) => {
+        group
           .append("path")
           .datum(points)
           .attr("fill", "black")
@@ -74,15 +100,26 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
     };
 
     if (isAnimated) {
-      let offset = 0;
+      let yOffset = 0;
+      const scrollSpeed = 0.5;
+      const totalHeight = height - margin.top - margin.bottom;
+
       const animate = () => {
-        offset += 0.5;
-        updateGraph(offset);
+        yOffset = (yOffset + scrollSpeed) % totalHeight;
+
+        group.attr("transform", `translate(0, ${yOffset})`);
+
         animationRef.current = requestAnimationFrame(animate);
       };
+
+      drawStaticGraph();
       animate();
     } else {
-      updateGraph();
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
+      }
+      drawStaticGraph();
     }
 
     return () => {
@@ -93,7 +130,7 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
   }, [data, isAnimated]);
 
   return (
-    <div className="relative w-[800px] h-[600px] bg-black">
+    <div className="relative w-[800px] h-[600px] bg-black overflow-hidden">
       <svg ref={svgRef} className="w-full h-full" />
     </div>
   );
