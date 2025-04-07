@@ -5,9 +5,21 @@ import * as d3 from "d3";
 
 interface Props {
   isAnimated: boolean;
+  numberOfRows?: number;
+  peakBandRatio?: number;
+  peakHeightMultiplier?: number;
+  peakBandNoiseMultiplier?: number;
+  peakGenerationProbability?: number;
 }
 
-export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
+export const JoyDivisionGraph: React.FC<Props> = ({
+  isAnimated,
+  numberOfRows = 45,
+  peakBandRatio = 0.2,
+  peakHeightMultiplier = 2.0,
+  peakBandNoiseMultiplier = 1.0,
+  peakGenerationProbability = 0.05,
+}) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [data, setData] = useState<number[][]>([]);
   const animationRef = useRef<number | undefined>(undefined);
@@ -15,16 +27,12 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
   const frameCounterRef = useRef(0);
 
   const generateData = useCallback(() => {
-    const rows = 80;
+    const rows = numberOfRows;
     const cols = 100;
     const peakHeight = 60;
     const edgeHeight = 5;
 
     return Array.from({ length: rows }, (_, i) => {
-      const distanceFactor = Math.abs(i - rows / 2) / (rows / 2);
-      const amplitude =
-        edgeHeight + (peakHeight - edgeHeight) * (1 - distanceFactor);
-
       const rowData = Array.from({ length: cols }, (_, j) => {
         const positionRatio = j / (cols - 1);
         let value = 0;
@@ -32,7 +40,7 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
         if (positionRatio < 0.25) {
           value = Math.random() * edgeHeight * 0.5;
         } else if (positionRatio < 0.75) {
-          value = Math.random() * amplitude;
+          value = Math.random() * peakHeight;
         } else {
           value = Math.random() * edgeHeight * 0.5;
         }
@@ -44,14 +52,13 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
       const middleLength = middleEnd - middleStart;
 
       if (
-        Math.abs(i - rows / 2) < rows * 0.2 &&
-        distanceFactor < 0.5 &&
+        Math.abs(i - rows / 2) < rows * peakBandRatio &&
         Math.random() > 0.8
       ) {
         const peakIndex =
           Math.floor(Math.random() * (middleLength - 10)) + middleStart + 5;
 
-        const currentPeakHeight = peakHeight * 1.5;
+        const currentPeakHeight = peakHeight * peakHeightMultiplier;
         for (let k = -2; k <= 2; k++) {
           const index = peakIndex + k;
           if (index >= 0 && index < cols) {
@@ -66,7 +73,7 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
 
       return rowData;
     });
-  }, []);
+  }, [numberOfRows, peakBandRatio, peakHeightMultiplier]);
 
   useEffect(() => {
     setData(generateData());
@@ -123,15 +130,67 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
   }, [data]);
 
   useEffect(() => {
-    const updateFrequency = 5;
+    const updateFrequency = 2;
+    const cols = 100;
+    const peakHeight = 60;
+    const edgeHeight = 5;
 
     const animate = () => {
       frameCounterRef.current++;
       if (frameCounterRef.current % updateFrequency === 0) {
         setData((currentData) => {
-          if (currentData.length <= 1) return currentData;
-          const lastRow = currentData[currentData.length - 1];
-          const restRows = currentData.slice(0, currentData.length - 1);
+          if (currentData.length === 0) return currentData;
+
+          let processedData = currentData.map((row) => {
+            const newRow = [...row];
+            for (let j = cols - 2; j >= 0; j--) {
+              const nextPositionRatio = (j + 1) / (cols - 1);
+              if (nextPositionRatio >= 0.75) {
+                newRow[j + 1] = Math.random() * edgeHeight * 0.5;
+              } else {
+                newRow[j + 1] = row[j];
+              }
+            }
+            newRow[0] = Math.random() * edgeHeight * 0.5;
+            return newRow;
+          });
+
+          const middleStart = Math.floor(cols * 0.25);
+          const middleEnd = Math.floor(cols * 0.75);
+          const middleLength = middleEnd - middleStart;
+
+          processedData = processedData.map((row /*, i*/) => {
+            const amplitude = peakHeight;
+            for (let j = middleStart; j < middleEnd; j++) {
+              row[j] = Math.max(
+                row[j],
+                Math.random() * amplitude * peakBandNoiseMultiplier
+              );
+            }
+
+            if (Math.random() < peakGenerationProbability) {
+              const peakIndex =
+                Math.floor(Math.random() * (middleLength - 10)) +
+                middleStart +
+                5;
+              const currentPeakHeight = peakHeight * peakHeightMultiplier;
+              for (let k = -2; k <= 2; k++) {
+                const index = peakIndex + k;
+                if (index >= middleStart && index < middleEnd) {
+                  const falloff = Math.exp(-(k * k) / 2);
+                  row[index] = Math.max(
+                    row[index],
+                    currentPeakHeight * falloff
+                  );
+                }
+              }
+            }
+            return row;
+          });
+
+          if (processedData.length <= 1) return processedData;
+          const lastRow = processedData[processedData.length - 1];
+          const restRows = processedData.slice(0, processedData.length - 1);
           return [lastRow, ...restRows];
         });
       }
@@ -154,7 +213,14 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
         animationRef.current = undefined;
       }
     };
-  }, [isAnimated, data.length]);
+  }, [
+    isAnimated,
+    data.length,
+    numberOfRows,
+    peakHeightMultiplier,
+    peakBandNoiseMultiplier,
+    peakGenerationProbability,
+  ]);
 
   return (
     <div className="relative w-[800px] h-[600px] bg-black overflow-hidden">
