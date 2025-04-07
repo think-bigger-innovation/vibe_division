@@ -10,7 +10,7 @@ interface Props {
 export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [data, setData] = useState<number[][]>([]);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   const generateData = () => {
     const rows = 50;
@@ -45,7 +45,7 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
       .range([margin.top, height - margin.bottom]);
 
     const area = d3
-      .area()
+      .area<[number, number]>()
       .x((d, i) => x(i))
       .y0((d) => d[0])
       .y1((d) => d[1])
@@ -55,7 +55,7 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
       svg.selectAll("path").remove();
 
       data.forEach((row, i) => {
-        const points = row.map((value, j) => {
+        const points: [number, number][] = row.map((value, j) => {
           const animOffset = isAnimated
             ? Math.sin((j + offset) * 0.1) * 10 +
               Math.cos((i + offset) * 0.1) * 10
@@ -66,10 +66,10 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
         svg
           .append("path")
           .datum(points)
-          .attr("fill", "none")
+          .attr("fill", "black")
           .attr("stroke", "white")
           .attr("stroke-width", 1)
-          .attr("d", area as any);
+          .attr("d", area);
       });
     };
 
@@ -93,14 +93,8 @@ export const JoyDivisionGraph: React.FC<Props> = ({ isAnimated }) => {
   }, [data, isAnimated]);
 
   return (
-    <div className="relative w-full h-[600px] bg-black">
-      <div className="absolute top-4 left-0 w-full text-center text-white text-4xl font-bold">
-        THINK BIGGER
-      </div>
+    <div className="relative w-[800px] h-[600px] bg-black">
       <svg ref={svgRef} className="w-full h-full" />
-      <div className="absolute bottom-4 left-0 w-full text-center text-white text-2xl">
-        CHOICE MAPPER
-      </div>
     </div>
   );
 };
