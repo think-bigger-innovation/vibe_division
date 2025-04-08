@@ -27,13 +27,13 @@ export default function Home() {
       </div>
       <JoyDivisionGraph
         isAnimated={isAnimated}
-        numberOfRows={99 }
+        numberOfRows={30}
         peakBandRatio={0.1}
         peakHeightMultiplier={1.2}
         peakBandNoiseMultiplier={1.0}
         peakGenerationProbability={0.1}
       />
-      <div className="w-full max-w-[800px] text-center text-white text-2xl mt-4">
+      <div className="w-  full max-w-[800px] text-center text-white text-2xl mt-4">
         CHOICE MAPPER
       </div>
     </main>
