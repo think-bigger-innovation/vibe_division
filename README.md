@@ -1,4 +1,4 @@
-# Choice Mapper
+# Vibe Division
 
 A D3.js exploration recreating the iconic waveform visualization style from Joy Division's Unknown Pleasures album artwork. Built with modern web tech as an interactive animation experiment.
 
