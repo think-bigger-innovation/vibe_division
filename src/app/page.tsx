@@ -23,7 +23,7 @@ export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center p-24 bg-black">
       <div className="w-full max-w-[800px] text-center text-white text-4xl font-bold mb-4">
-        THINK BIGGER
+        A CHANGE OF SPEED
       </div>
       <JoyDivisionGraph
         isAnimated={isAnimated}
@@ -34,7 +34,7 @@ export default function Home() {
         peakGenerationProbability={0.1}
       />
       <div className="w-full max-w-[800px] text-center text-white text-4xl mt-4">
-        CHOICE MAPPER
+        HOPING FOR SOMETHING ELSE
       </div>
     </main>
   );

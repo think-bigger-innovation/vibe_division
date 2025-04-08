@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "THINK BIGGER",
+  title: "CHANGE OF SPEED",
   description: "vibe-coding d3 exploration",
 };
 
