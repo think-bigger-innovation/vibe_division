@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CHANGE OF SPEED",
-  description: "vibe-coding d3 exploration",
+  description: "partial-vibe-code d3 exploration",
 };
 
 export default function RootLayout({
